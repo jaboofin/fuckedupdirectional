@@ -20,8 +20,12 @@ from dataclasses import dataclass, field
 from typing import Optional, Any
 from enum import Enum
 
-import aiohttp
 import asyncio
+
+try:
+    import aiohttp
+except ModuleNotFoundError:
+    aiohttp = None
 
 logger = logging.getLogger("polymarket")
 
@@ -168,7 +172,7 @@ def _parse_market_from_event(event: dict, slug: str) -> Optional[BinaryMarket]:
 class PolymarketClient:
     def __init__(self, config):
         self.config = config.polymarket
-        self._session: Optional[aiohttp.ClientSession] = None
+        self._session: Optional[Any] = None
         self._clob: Optional[object] = None
         self._clob_initialized = False
         self._active_markets: dict[str, BinaryMarket] = {}
@@ -213,7 +217,9 @@ class PolymarketClient:
 
     # ── HTTP ────────────────────────────────────────────────────
 
-    async def _get_session(self) -> aiohttp.ClientSession:
+    async def _get_session(self) -> Any:
+        if aiohttp is None:
+            raise RuntimeError("aiohttp is required for HTTP operations. Install with: pip install aiohttp")
         if self._session is None or self._session.closed:
             self._session = aiohttp.ClientSession(timeout=aiohttp.ClientTimeout(total=15), headers={"Content-Type": "application/json"})
         return self._session
